@@ -1,0 +1,57 @@
+---
+- name: Configure Managed Routers
+  hosts: routers
+  connection: network_cli
+   
+  tasks:
+    - debug: 
+        msg: "{{hostvars[inventory_hostname]['gig2']}}"
+
+
+    - name: Configure IP on Gig0/1 and Gig0/2
+      cisco.ios.ios_l3_interfaces:
+        config:
+        - name: GigabitEthernet0/1
+          ipv4:
+          - address: "{{hostvars[inventory_hostname]['gig1']}}" 
+        - name: GigabitEthernet0/2
+          ipv4:
+          - address: "{{hostvars[inventory_hostname]['gig2']}}"
+   
+    - name: Configure Loopback0
+      cisco.ios.ios_interfaces:
+        config:
+        - name: loopback0
+          enabled: true
+
+    - pause: 
+        prompt: Allow Loopback0 to be created
+        seconds: 60
+       
+    - name: Configure IP on Loopback0
+      cisco.ios.ios_l3_interfaces:
+        config:
+        - name: loopback0 
+          ipv4:
+          - address: "{{hostvars[inventory_hostname]['loopback0']}}"
+
+    - name: Bring up and Configure description on Gig0/1, Gig0/2 and Loopback0
+      cisco.ios.ios_interfaces:
+        config:
+        - name: GigabitEthernet0/1
+          description: "{{hostvars[inventory_hostname]['gig1_description']}}"
+          enabled: true
+        - name: GigabitEthernet0/2
+          description: "{{hostvars[inventory_hostname]['gig2_description']}}"
+          enabled: true
+        - name: Loopback0
+          description: "{{hostvars[inventory_hostname]['loopback0_description']}}"
+          enabled: true
+
+    - name: Configure OSPF on the LAN Interface GigabitEthernet0/1
+      ios_config:
+        lines:
+         - "{{hostvars[inventory_hostname]['ospf_network_all']}}"
+         - "{{hostvars[inventory_hostname]['ospf_network_update_source']}}"
+        parents: router ospf 1
+
